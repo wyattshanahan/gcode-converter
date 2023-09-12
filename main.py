@@ -1,29 +1,32 @@
 def processGcode(fileName, scale, offsetX, offsetY):
     # read data from the gcode file
     content = open(fileName,'r').readlines()
-    d,r,i,sp,ep = [],[],0,';LAYER:0',';LAYER:1'
+    i = 0 #initialise the iterator
+    d,r = [],[]
+    startingPoint = ';LAYER:0' # find the starting point (layer 0)
+    endPoint = ';LAYER:1' # find the end point, where the next layer would start in 3D space
     for line in content:
-        i+=1
-        if line.find(ep) >= 0:
-            e = i
-            break
-        elif line.find(sp) >= 0:s = i
-    for i in range(s+1,e):r.append(content[i].split())
-    for i in range(0,len(r)):
-        a = r[i]
-        if a[0] == 'G1':boolean = True
-        elif a[0] == 'G0':boolean = False
-        else:continue
-        x,y = a[1],a[2]
-        if x[0] == 'X':x = a[1]
-        elif y[0] == 'X':x,y = a[2],a[3]
+        i+=1 # increment to reach each line
+        if line.find(endPoint) >= 0: # if reached the end of the Layer 0, then break
+            lnCount = i # set the count for the number of lines in layer 0 to i
+            break # break for loop
+        elif line.find(startingPoint) >= 0:s = i # if on layer 0 with no value, then this must be the starting point
+    for i in range(s+1,lnCount):r.append(content[i].split())
+    for i in range(0,len(r)): # iterate through the list
+        currData = r[i] # pull in the current list of data (G0, x, y)
+        if currData[0] == 'G1': extrude = True # if the value is G1, then move and output pixels
+        elif currData[0] == 'G0': extrude = False # if the value is G0, then move but don't output picels
+        else: continue # if there's no data, then continue
+        x,y = currData[1],currData[2] # set the x and y coordinates from the current data set
+        if x[0] == 'X':x = currData[1]
+        elif y[0] == 'X':x,y = currData[2],currData[3]
         else: continue
-        d += [[((float(x[1:]) * scale) + offsetX),((float(y[1:]) * scale) + offsetY),boolean]]
+        d += [[((float(x[1:]) * scale) + offsetX),((float(y[1:]) * scale) + offsetY),extrude]]
     if len(d) < 15: print(d)
     return d
 def gCode(points):
     import turtle
-    wn,t = turtle.Screen(),turtle.Turtle()
+    wn,t = turtle.Screen(),turtle.Turtle() # initialise the turtle and turtle graphics
     wn.tracer(0)
     for x, y, extrude in points:
         if extrude:t.down()
